@@ -3,3 +3,8 @@ client
 gen-cpp
 .vscode
 .vscode/*
+grpc/helloworld/*
+
+*.pb.*
+
+core

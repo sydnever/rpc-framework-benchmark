@@ -138,7 +138,7 @@ int main(int argc, char **argv)
     t.detach();
   }
 
-  while(trans < requests_num){
+  while(trans.load() < requests_num){
     continue;
   }
   
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
   sort(stats.begin(), stats.end());
 
   cout << "mean" << endl;
-  double_t mean = accumulate(stats.begin(), stats.end(), 0.0) / stats.size();
+  double mean = accumulate(stats.begin(), stats.end(), 0.0) / stats.size();
 
   cout << "sent     requests    : " << requests_num << endl;
   cout << "received requests    : " << trans << endl;
