@@ -9,8 +9,10 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cstdio>
 #include <iostream>
+#include <mutex>
 #include <numeric>
 #include <string>
 #include <sys/time.h>
@@ -27,6 +29,8 @@ using namespace ::apache::thrift::protocol;
 using namespace ::apache::thrift::transport;
 using namespace ::apache::thrift::server;
 using boost::shared_ptr;
+
+mutex mtx;
 
 int64_t get_current_time()
 {
@@ -99,16 +103,13 @@ int main(int argc, char **argv)
   cout << "prepare BenchmarkMessage" << endl;
   BenchmarkMessage msg = prepare_args();
 
-  cout << "create clients" << endl;
   int per_client_num = requests_num / threads_num;
 
   atomic<int> trans(0);
   atomic<int> trans_ok(0);
 
   vector<uint64_t> stats;
-  cout << "begin" << endl;
   int64_t start_time = get_current_time();
-  cout << "begin1" << endl;
 
   for (int i = 0; i < threads_num; i++)
   {
@@ -126,8 +127,9 @@ int main(int argc, char **argv)
         client.say(return_msg, msg);
         // cout << "say" << i << endl;
         int64_t thread_get_response = get_current_time();
+        mtx.lock();
         stats.push_back(thread_get_response - thread_start);
-
+        mtx.unlock();
         trans++;
         if (return_msg.field1.compare("OK") == 0)
         {
@@ -138,17 +140,18 @@ int main(int argc, char **argv)
     t.detach();
   }
 
-  while(trans.load() < requests_num){
-    continue;
+  while (trans.load() < requests_num)
+  {
+    this_thread::sleep_for(chrono::milliseconds(10));
   }
-  
-  cout << "begin2" << endl;
   int64_t cost_time = (get_current_time() - start_time) / 1000;
+  while (stats.size() < (size_t)requests_num)
+  {
+    this_thread::sleep_for(chrono::milliseconds(10));
+  }
 
-  cout << "sort" << endl;
   sort(stats.begin(), stats.end());
 
-  cout << "mean" << endl;
   double mean = accumulate(stats.begin(), stats.end(), 0.0) / stats.size();
 
   cout << "sent     requests    : " << requests_num << endl;

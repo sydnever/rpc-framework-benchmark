@@ -3,7 +3,7 @@ client
 gen-cpp
 .vscode
 .vscode/*
-grpc/helloworld/*
+*/helloworld/*
 
 *.pb.*
 
