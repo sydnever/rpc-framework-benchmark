@@ -166,8 +166,9 @@ int main(int argc, char **argv)
   cout << "99P(ms):    " << stats[int(stats.size() * 0.999)] << endl;
 
   cout << "time cost(s)       :" << cost_time << endl;
+  double tps = requests_num / cost_time;
   if (cost_time > 0)
-    cout << "throughput (TPS): " << (double)requests_num / cost_time << endl;
+    cout << "throughput (TPS): " << tps << endl;
 
   return 0;
 }
