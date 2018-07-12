@@ -155,8 +155,7 @@ int main(int argc, char **argv)
   sort(stats.begin(), stats.end());
 
   double mean = accumulate(stats.begin(), stats.end(), 0.0) / stats.size();
-
-  cout.precision(3);
+  
   cout << "sent     requests    : " << requests_num << endl;
   cout << "received requests    : " << trans << endl;
   cout << "received requests_OK : " << trans_ok << endl;

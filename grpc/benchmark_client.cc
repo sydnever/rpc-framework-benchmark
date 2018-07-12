@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
         this_thread::sleep_for(chrono::milliseconds(10));
     }
     sort(stats.begin(), stats.end());
-    cout.precision(3);
+    
     cout << "sent     requests    : " << requests_num << endl;
     cout << "received requests_OK : " << trans_ok << endl;
     cout << "mean(ms):   "
