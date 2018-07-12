@@ -1,5 +1,5 @@
 CC = g++
-CC_FLAG = -std=c++11 -Wall
+CC_FLAG = -std=c++11 -Wall -O2
 
 INC = -I/usr/local/include
 # LIB = -lpthread -pthread -L/usr/local/lib -lgrpc++ -lprotobuf -lgrpc 

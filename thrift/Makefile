@@ -2,7 +2,7 @@ CPPS=gen-cpp/benchmark_constants.cpp gen-cpp/Greeter.cpp gen-cpp/benchmark_types
 
 #set your own environment option
 CC = g++
-CC_FLAG = -std=c++11 -Wall
+CC_FLAG = -std=c++11 -Wall -O2
 
 #set your inc and lib
 INC = -I/usr/local/include/thrift

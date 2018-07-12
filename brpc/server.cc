@@ -1,8 +1,13 @@
 // A server to receive EchoRequest and send back EchoResponse.
+#include "benchmark.pb.h"
 
 #include <butil/logging.h>
 #include <brpc/server.h>
-#include "benchmark.pb.h"
+
+#include <thread>
+#include <chrono>
+
+using namespace std;
 
 // Your implementation of example::EchoService
 // Notice that implementing brpc::Describable grants the ability to put
@@ -11,7 +16,7 @@
 class HelloImpl final : public brpc_benchmark::Hello
 {
   public:
-    HelloImpl(){};
+    HelloImpl(int delay) : delay(delay){};
     ~HelloImpl(){};
     void Say(google::protobuf::RpcController *cntl_base,
              const brpc_benchmark::BenchmarkMessage *request,
@@ -26,16 +31,23 @@ class HelloImpl final : public brpc_benchmark::Hello
             static_cast<brpc::Controller *>(cntl_base);
 
         // Fill response.
+        if (delay > 0)
+        {
+            this_thread::sleep_for(chrono::milliseconds(delay));
+        }
         response->CopyFrom(*request);
         response->set_field1("OK");
         response->set_field2(100);
     }
+
+  private:
+    int delay;
 };
 
 int main(int argc, char *argv[])
 {
     int delay;
-    if(argc != 2)
+    if (argc != 2)
         delay = 0;
     else
         delay = atoi(argv[1]);
@@ -44,7 +56,7 @@ int main(int argc, char *argv[])
     brpc::Server server;
 
     // Instance of your service.
-    HelloImpl hello_impl;
+    HelloImpl hello_impl(delay);
 
     // Add the service into server. Notice the second parameter, because the
     // service is put on stack, we don't want server to delete it, otherwise
@@ -55,7 +67,7 @@ int main(int argc, char *argv[])
         LOG(ERROR) << "Fail to add service";
         return -1;
     }
-
+    server.MaxConcurrencyOf(&hello_impl, "Say") = 10000000;
     // Start the server.
     brpc::ServerOptions options;
     options.idle_timeout_sec = -1;

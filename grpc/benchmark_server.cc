@@ -16,7 +16,7 @@ class HelloServiceImpl final : public grpc_benchmark::Hello::Service
   public:
     HelloServiceImpl(long delay) : delay(delay){}
 
-    ::grpc::Status Say(::grpc::ServerContext *context,
+    grpc::Status Say(::grpc::ServerContext *context,
                        const ::grpc_benchmark::BenchmarkMessage *request,
                        ::grpc_benchmark::BenchmarkMessage *response) override
     {

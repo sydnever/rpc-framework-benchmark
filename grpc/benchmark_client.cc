@@ -130,25 +130,23 @@ int main(int argc, char *argv[])
         cout << "no parms" << endl;
         return -1;
     }
-    int threads_num = atoi(argv[1]);
-    int requests_num = atoi(argv[2]);
-
-    grpc_benchmark::BenchmarkMessage msg = prepare_args();
+    long threads_num = atol(argv[1]);
+    long requests_num = atol(argv[2]);
 
     const string addr = "127.0.0.1:9091";
     std::shared_ptr<grpc::Channel> channel =
         grpc::CreateChannel(addr, grpc::InsecureChannelCredentials());
 
-    int per_client_num = requests_num / threads_num;
+    long per_client_num = requests_num / threads_num;
 
-    atomic<int> trans(0);
+    atomic<long> trans(0);
     atomic<long> trans_ok(0);
 
     vector<uint64_t> stats;
     cout << "begin" << endl;
     int64_t start_time = get_current_time();
 
-    for (int i = 0; i < threads_num; i++)
+    for (long i = 0; i < threads_num; i++)
     {
         thread t([per_client_num, &channel, &trans, &trans_ok, &stats]() {
             HelloClient client(channel);
@@ -172,8 +170,6 @@ int main(int argc, char *argv[])
     {
         this_thread::sleep_for(chrono::milliseconds(10));
     }
-
-    // TODO:
     sort(stats.begin(), stats.end());
     cout << "sent     requests    : " << requests_num << endl;
     cout << "received requests_OK : " << trans_ok << endl;

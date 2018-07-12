@@ -20,9 +20,26 @@
 #include <butil/time.h>
 #include <brpc/channel.h>
 
+#include <atomic>
+#include <iostream>
+#include <memory>
+#include <mutex>
+#include <numeric>
 #include <string>
+#include <sys/time.h>
+#include <thread>
+#include <vector>
 
 using namespace std;
+
+mutex mtx;
+
+int64_t get_current_time()
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL); //该函数在sys/time.h头文件中
+    return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+}
 
 brpc_benchmark::BenchmarkMessage prepare_args()
 {
@@ -77,23 +94,24 @@ brpc_benchmark::BenchmarkMessage prepare_args()
 int main(int argc, char *argv[])
 {
 
-    string server = "127.0.0.1:9092";  // "IP Address of server");
-    string load_balancer = "";  // "The algorithm for load balancing");
-    int32_t timeout_ms = 100;  // "RPC timeout in milliseconds");
-    int32_t max_retry = 3;  // "Max retries(not including the first RPC)");
-    int32_t interval_ms = 1000;  // "Milliseconds between consecutive requests");
-    string http_content_type = "application/json";  // "Content type of http request");
+    string server = "127.0.0.1:9092";              // "IP Address of server");
+    string load_balancer = "";                     // "The algorithm for load balancing");
+    int32_t timeout_ms = 100;                      // "RPC timeout in milliseconds");
+    int32_t max_retry = 3;                         // "Max retries(not including the first RPC)");
+    string http_content_type = "application/json"; // "Content type of http request");
 
     string protocol = "baidu_std"; // Protocol type. Defined in src/brpc/options.proto
-    string connection_type =  ""; // Connection type. Available values: single, pooled, short
+    string connection_type = "";   // Connection type. Available values: single, pooled, short
 
-    long thread_num = 1;
-    long request_num = 1;
+    long threads_num = 1;
+    long requests_num = 1;
     if (argc == 3)
     {
-        thread_num = atol(argv[1]);
-        request_num = atol(argv[2]);
+        threads_num = atol(argv[1]);
+        requests_num = atol(argv[2]);
     }
+
+    long per_client_num = requests_num / threads_num;
 
     // A Channel represents a communication line to a Server. Notice that
     // Channel is thread-safe and can be shared by all threads in your program.
@@ -105,6 +123,7 @@ int main(int argc, char *argv[])
     options.connection_type = connection_type;
     options.timeout_ms = timeout_ms /*milliseconds*/;
     options.max_retry = max_retry;
+
     if (channel.Init(server.c_str(), load_balancer.c_str(), &options) != 0)
     {
         LOG(ERROR) << "Fail to initialize channel";
@@ -116,37 +135,66 @@ int main(int argc, char *argv[])
     brpc_benchmark::Hello_Stub stub(&channel);
 
     // Send a request and wait for the response every 1 second.
-    int log_id = 0;
-    while (!brpc::IsAskedToQuit())
+
+    atomic<int> trans(0);
+    atomic<long> trans_ok(0);
+
+    vector<uint64_t> stats;
+    cout << "begin" << endl;
+    int64_t start_time = get_current_time();
+
+    for (long i = 0; i < threads_num; i++)
     {
-        // We will receive response synchronously, safe to put variables
-        // on stack.
-        brpc_benchmark::BenchmarkMessage request;
-        brpc_benchmark::BenchmarkMessage response;
-        brpc::Controller cntl;
+        thread t([per_client_num, &stub, &trans, &trans_ok, &stats]() {
+            brpc_benchmark::BenchmarkMessage request;
+            brpc_benchmark::BenchmarkMessage response;
+            
+            vector<uint64_t> stat;
 
-        request.CopyFrom(prepare_args());
-
-        cntl.set_log_id(log_id++); // set by user
-
-        // Because `done'(last parameter) is NULL, this function waits until
-        // the response comes back or error occurs(including timedout).
-        stub.Say(&cntl, &request, &response, NULL);
-        if (!cntl.Failed())
-        {
-            LOG(INFO) << "Received response from " << cntl.remote_side()
-                      << " to " << cntl.local_side()
-                      << ": " << response.field1() << " (attached="
-                      << cntl.response_attachment() << ")"
-                      << " latency=" << cntl.latency_us() << "us";
-        }
-        else
-        {
-            LOG(WARNING) << cntl.ErrorText();
-        }
-        usleep(interval_ms * 1000L);
+            request.CopyFrom(prepare_args());
+            for (long j = 0; j < per_client_num; j++)
+            {
+                brpc::Controller cntl;
+                uint64_t start = get_current_time();
+                stub.Say(&cntl, &request, &response, NULL);
+                uint64_t cost = get_current_time() - start;
+                
+                stat.push_back(cost);
+                if (!cntl.Failed() && response.field1().compare("OK") == 0 &&
+                    response.field2() == 100)
+                {
+                    trans_ok++;
+                }
+            }
+            mtx.lock();
+            stats.insert(stats.end(), stat.begin(), stat.end());
+            mtx.unlock();
+            trans++;
+        });
+        t.detach();
+        // t.join();
     }
 
-    LOG(INFO) << "EchoClient is going to quit";
+     while (trans.load() < threads_num)
+    {
+        this_thread::sleep_for(chrono::milliseconds(10));
+    }
+    auto cost_time = (get_current_time() - start_time) / 1000;
+    cout << "time cost(s): " << cost_time << endl;
+    while (stats.size() < (size_t)requests_num)
+    {
+        this_thread::sleep_for(chrono::milliseconds(10));
+    }
+    sort(stats.begin(), stats.end());
+    cout << "sent     requests    : " << requests_num << endl;
+    cout << "received requests_OK : " << trans_ok << endl;
+    cout << "mean(ms):   "
+         << accumulate(stats.begin(), stats.end(), 0.0) / stats.size() << endl;
+    cout << "median(ms): " << stats[stats.size() / 2] << endl;
+    cout << "max(ms):    " << *(stats.end() - 1) << endl;
+    cout << "min(ms):    " << *(stats.begin()) << endl;
+    cout << "99P(ms):    " << stats[int(stats.size() * 0.999)] << endl;
+    if (cost_time > 0)
+        cout << "throughput (TPS): " << requests_num / cost_time << endl;
     return 0;
 }
