@@ -120,6 +120,7 @@ int main(int argc, char **argv)
       stdcxx::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
       GreeterClient client(protocol);
       transport->open();
+      vector<uint64_t> stat;
       for (int j = 0; j < per_client_num; j++)
       {
         BenchmarkMessage return_msg;
@@ -127,15 +128,16 @@ int main(int argc, char **argv)
         client.say(return_msg, msg);
         // cout << "say" << i << endl;
         int64_t thread_get_response = get_current_time();
-        mtx.lock();
-        stats.push_back(thread_get_response - thread_start);
-        mtx.unlock();
+        stat.push_back(thread_get_response - thread_start);
         trans++;
         if (return_msg.field1.compare("OK") == 0)
         {
           trans_ok++;
         }
       }
+      mtx.lock();
+      stats.insert(stats.end(), stat.begin(), stat.end());
+      mtx.unlock();
     });
     t.detach();
   }
@@ -144,7 +146,7 @@ int main(int argc, char **argv)
   {
     this_thread::sleep_for(chrono::milliseconds(10));
   }
-  int64_t cost_time = (get_current_time() - start_time) / 1000;
+  double cost_time = (get_current_time() - start_time) / 1000.0;
   while (stats.size() < (size_t)requests_num)
   {
     this_thread::sleep_for(chrono::milliseconds(10));
@@ -165,7 +167,7 @@ int main(int argc, char **argv)
 
   cout << "time cost(s)       :" << cost_time << endl;
   if (cost_time > 0)
-    cout << "throughput (TPS): " << int64_t(requests_num) / cost_time << endl;
+    cout << "throughput (TPS): " << requests_num / cost_time << endl;
 
   return 0;
 }

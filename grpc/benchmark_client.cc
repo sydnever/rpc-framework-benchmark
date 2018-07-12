@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
     {
         this_thread::sleep_for(chrono::milliseconds(10));
     }
-    auto cost_time = (get_current_time() - start_time) / 1000;
+    auto cost_time = (get_current_time() - start_time) / 1000.0;
     cout << "time cost(s): " << cost_time << endl;
     while (stats.size() < (size_t)requests_num)
     {
