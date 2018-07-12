@@ -156,6 +156,7 @@ int main(int argc, char **argv)
 
   double mean = accumulate(stats.begin(), stats.end(), 0.0) / stats.size();
 
+  cout.precision(20);
   cout << "sent     requests    : " << requests_num << endl;
   cout << "received requests    : " << trans << endl;
   cout << "received requests_OK : " << trans_ok << endl;
@@ -166,9 +167,8 @@ int main(int argc, char **argv)
   cout << "99P(ms):    " << stats[int(stats.size() * 0.999)] << endl;
 
   cout << "time cost(s)       :" << cost_time << endl;
-  double tps = requests_num / cost_time;
   if (cost_time > 0)
-    cout << "throughput (TPS): " << tps << endl;
+    cout << "throughput (TPS): " << (double)requests_num / cost_time << endl;
 
   return 0;
 }
