@@ -180,6 +180,6 @@ int main(int argc, char *argv[])
     cout << "min(ms):    " << *(stats.begin()) << endl;
     cout << "99P(ms):    " << stats[int(stats.size() * 0.999)] << endl;
     if (cost_time > 0)
-        cout << "throughput (TPS): " << requests_num / cost_time << endl;
+        cout << "throughput (TPS): " << (double)requests_num / cost_time << endl;
     return 0;
 }

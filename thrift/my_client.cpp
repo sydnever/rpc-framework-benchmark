@@ -167,7 +167,7 @@ int main(int argc, char **argv)
 
   cout << "time cost(s)       :" << cost_time << endl;
   if (cost_time > 0)
-    cout << "throughput (TPS): " << requests_num / cost_time << endl;
+    cout << "throughput (TPS): " << (double)requests_num / cost_time << endl;
 
   return 0;
 }
