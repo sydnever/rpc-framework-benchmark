@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
         servers[i].RunUntilAskedToQuit();
     }
 
-    int port = 9290;
+    port = 9290;
     for (int i = 0; i < 10; i++)
     {
         if (servers[i].AddService(&hello_impl,
