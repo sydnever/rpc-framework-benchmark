@@ -53,8 +53,7 @@ int main(int argc, char *argv[])
         delay = atoi(argv[1]);
 
     // Generally you only need one Server.
-    vector<brpc::Server> servers;
-    servers.resize(10);
+    brpc::Server servers[10];
 
     // Instance of your service.
     HelloImpl hello_impl(delay);
@@ -64,12 +63,10 @@ int main(int argc, char *argv[])
     // use brpc::SERVER_OWNS_SERVICE.
 
     int port = 9190;
-    for (vector<brpc::Server>::iterator server = servers.begin();
-         server != servers.end();
-         server++, port++)
+    for (int i = 0; i < 10; i++)
     {
-        if (server->AddService(&hello_impl,
-                              brpc::SERVER_DOESNT_OWN_SERVICE) != 0)
+        if (servers[i].AddService(&hello_impl,
+                               brpc::SERVER_DOESNT_OWN_SERVICE) != 0)
         {
             LOG(ERROR) << "Fail to add service";
             return -1;
@@ -77,14 +74,14 @@ int main(int argc, char *argv[])
         // Start the server.
         brpc::ServerOptions options;
         options.idle_timeout_sec = -1;
-        if (server->Start(port, &options) != 0)
+        if (servers[i].Start(port+i, &options) != 0)
         {
             LOG(ERROR) << "Fail to start EchoServer";
             return -1;
         }
 
         // Wait until Ctrl-C is pressed, then Stop() and Join() the server.
-        server->RunUntilAskedToQuit();
+        servers[i].RunUntilAskedToQuit();
     }
 
     return 0;
