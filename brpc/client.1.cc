@@ -16,9 +16,9 @@
 
 #include "benchmark.pb.h"
 
+#include <brpc/channel.h>
 #include <butil/logging.h>
 #include <butil/time.h>
-#include <brpc/channel.h>
 
 #include <atomic>
 #include <iostream>
@@ -93,15 +93,22 @@ brpc_benchmark::BenchmarkMessage prepare_args()
 
 int main(int argc, char *argv[])
 {
+    string naming_service_url = "list://";
+    for(int i = 0; i < 10; i++){
+        string tmp = "127.0.0.1:919" + to_string(i) + ",";
+        naming_service_url += tmp;
+    }
 
-    string server = "127.0.0.1:9092";              // "IP Address of server");
-    string load_balancer = "";                     // "The algorithm for load balancing");
-    int32_t timeout_ms = 100;                      // "RPC timeout in milliseconds");
-    int32_t max_retry = 3;                         // "Max retries(not including the first RPC)");
-    string http_content_type = "application/json"; // "Content type of http request");
+    string load_balancer = "rr"; // "The algorithm for load balancing");
+    int32_t timeout_ms = 100;  // "RPC timeout in milliseconds");
+    int32_t max_retry = 3;     // "Max retries(not including the first RPC)");
+    string http_content_type =
+        "application/json"; // "Content type of http request");
 
-    string protocol = "baidu_std"; // Protocol type. Defined in src/brpc/options.proto
-    string connection_type = "";   // Connection type. Available values: single, pooled, short
+    string protocol =
+        "baidu_std"; // Protocol type. Defined in src/brpc/options.proto
+    string connection_type =
+        ""; // Connection type. Available values: single, pooled, short
 
     long threads_num = 1;
     long requests_num = 1;
@@ -124,7 +131,7 @@ int main(int argc, char *argv[])
     options.timeout_ms = timeout_ms /*milliseconds*/;
     options.max_retry = max_retry;
 
-    if (channel.Init(server.c_str(), load_balancer.c_str(), &options) != 0)
+    if (channel.Init(naming_service_url.c_str(), load_balancer.c_str(), &options) != 0)
     {
         LOG(ERROR) << "Fail to initialize channel";
         return -1;
@@ -149,7 +156,7 @@ int main(int argc, char *argv[])
             brpc_benchmark::Hello_Stub stub(&channel);
             brpc_benchmark::BenchmarkMessage request;
             brpc_benchmark::BenchmarkMessage response;
-            
+
             vector<uint64_t> stat;
 
             request.CopyFrom(prepare_args());
@@ -159,7 +166,7 @@ int main(int argc, char *argv[])
                 uint64_t start = get_current_time();
                 stub.Say(&cntl, &request, &response, NULL);
                 uint64_t cost = get_current_time() - start;
-                
+
                 stat.push_back(cost);
                 if (!cntl.Failed() && response.field1().compare("OK") == 0 &&
                     response.field2() == 100)
@@ -176,7 +183,7 @@ int main(int argc, char *argv[])
         // t.join();
     }
 
-     while (trans.load() < threads_num)
+    while (trans.load() < threads_num)
     {
         this_thread::sleep_for(chrono::milliseconds(10));
     }
@@ -187,7 +194,7 @@ int main(int argc, char *argv[])
         this_thread::sleep_for(chrono::milliseconds(10));
     }
     sort(stats.begin(), stats.end());
-    
+
     cout << "sent     requests    : " << requests_num << endl;
     cout << "received requests_OK : " << trans_ok << endl;
     cout << "mean(ms):   "
