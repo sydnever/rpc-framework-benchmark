@@ -17,6 +17,7 @@
 #include "benchmark.pb.h"
 
 #include <brpc/channel.h>
+#include <brpc/parallel_channel.h>
 #include <butil/logging.h>
 #include <butil/time.h>
 
@@ -94,18 +95,20 @@ brpc_benchmark::BenchmarkMessage prepare_args()
 int main(int argc, char *argv[])
 {
     string naming_service_url = "list://";
-    for(int i = 0; i < 10; i++){
+    for (int i = 0; i < 10; i++)
+    {
         string tmp = "127.0.0.1:919" + to_string(i) + ",";
         naming_service_url += tmp;
     }
-    for(int i = 0; i < 10; i++){
+    for (int i = 0; i < 10; i++)
+    {
         string tmp = "127.0.0.1:929" + to_string(i) + ",";
         naming_service_url += tmp;
     }
 
     string load_balancer = "rr"; // "The algorithm for load balancing");
-    int32_t timeout_ms = 100;  // "RPC timeout in milliseconds");
-    int32_t max_retry = 3;     // "Max retries(not including the first RPC)");
+    int32_t timeout_ms = 100;    // "RPC timeout in milliseconds");
+    int32_t max_retry = 3;       // "Max retries(not including the first RPC)");
     string http_content_type =
         "application/json"; // "Content type of http request");
 
@@ -126,7 +129,17 @@ int main(int argc, char *argv[])
 
     // A Channel represents a communication line to a Server. Notice that
     // Channel is thread-safe and can be shared by all threads in your program.
-    brpc::Channel channel;
+    // brpc::Channel channel;
+
+    // A Channel represents a communication line to a Server. Notice that 
+    // Channel is thread-safe and can be shared by all threads in your program.
+    brpc::ParallelChannel channel;
+    brpc::ParallelChannelOptions pchan_options;
+    pchan_options.timeout_ms = timeout_ms;
+    if (channel.Init(&pchan_options) != 0) {
+        LOG(ERROR) << "Fail to init ParallelChannel";
+        return -1;
+    }
 
     // Initialize the channel, NULL means using default options.
     brpc::ChannelOptions options;
@@ -135,10 +148,22 @@ int main(int argc, char *argv[])
     options.timeout_ms = timeout_ms /*milliseconds*/;
     options.max_retry = max_retry;
 
-    if (channel.Init(naming_service_url.c_str(), load_balancer.c_str(), &options) != 0)
+    for (int i = 0; i < 10; i++)
     {
-        LOG(ERROR) << "Fail to initialize channel";
-        return -1;
+        brpc::Channel *sub_channel = new brpc::Channel;
+        // Initialize the channel, NULL means using default options.
+        // options, see `brpc/channel.h'.
+        if (sub_channel->Init(naming_service_url.c_str(), load_balancer.c_str(), &options) != 0)
+        {
+            LOG(ERROR) << "Fail to initialize sub_channel[" << i << "]";
+            return -1;
+        }
+        if (channel.AddChannel(sub_channel, brpc::OWNS_CHANNEL,
+                               NULL, NULL) != 0)
+        {
+            LOG(ERROR) << "Fail to AddChannel, i=" << i;
+            return -1;
+        }
     }
 
     // Normally, you should not call a Channel directly, but instead construct
