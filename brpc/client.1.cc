@@ -98,6 +98,10 @@ int main(int argc, char *argv[])
         string tmp = "127.0.0.1:919" + to_string(i) + ",";
         naming_service_url += tmp;
     }
+    for(int i = 0; i < 10; i++){
+        string tmp = "127.0.0.1:929" + to_string(i) + ",";
+        naming_service_url += tmp;
+    }
 
     string load_balancer = "rr"; // "The algorithm for load balancing");
     int32_t timeout_ms = 100;  // "RPC timeout in milliseconds");

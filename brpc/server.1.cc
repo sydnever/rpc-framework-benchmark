@@ -84,5 +84,27 @@ int main(int argc, char *argv[])
         servers[i].RunUntilAskedToQuit();
     }
 
+    int port = 9290;
+    for (int i = 0; i < 10; i++)
+    {
+        if (servers[i].AddService(&hello_impl,
+                               brpc::SERVER_DOESNT_OWN_SERVICE) != 0)
+        {
+            LOG(ERROR) << "Fail to add service";
+            return -1;
+        }
+        // Start the server.
+        brpc::ServerOptions options;
+        options.idle_timeout_sec = -1;
+        if (servers[i].Start(port+i, &options) != 0)
+        {
+            LOG(ERROR) << "Fail to start EchoServer";
+            return -1;
+        }
+
+        // Wait until Ctrl-C is pressed, then Stop() and Join() the server.
+        servers[i].RunUntilAskedToQuit();
+    }
+
     return 0;
 }
