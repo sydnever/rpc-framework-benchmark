@@ -12,6 +12,9 @@ all: generate build
 build: 
 	$(CC) $(CC_FLAG) -o server server.cc $(CPPS) $(INC) $(LIB)
 	$(CC) $(CC_FLAG) -o client client.cc $(CPPS) $(INC) $(LIB) 
+	$(CC) $(CC_FLAG) -o server.async server.async.cc $(CPPS) $(INC) $(LIB)
+	$(CC) $(CC_FLAG) -o client.async client.async.cc $(CPPS) $(INC) $(LIB) 
+	
 
 build1:
 	$(CC) $(CC_FLAG) -o server.1 server.1.cc $(CPPS) $(INC) $(LIB)
