@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
     if (argc != 2){
         thread_num = 2; 
     }else{
-        thread_num = atoi(argv[2]);
+        thread_num = atoi(argv[1]);
     }
 
 
