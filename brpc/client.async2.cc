@@ -19,11 +19,10 @@ bool use_bthread = false;      //"Use bthread to send requests");
 int attachment_size = 0;       //"Carry so many byte attachment along with requests");
 int request_size = 16;         //"Bytes of each request");
 string protocol = "baidu_std"; //"Protocol type.  in src =brpc/options.proto");
-string connection_type =
-    "";                         //"Connection type. Available values: single, pooled, short");
+string connection_type = "";  //"Connection type. Available values: single, pooled, short");
 string server = "0.0.0.0:9092"; //"IP Address of server");
 string load_balancer = "";      //"The algorithm for load balancing");
-int timeout_ms = 100;           //"RPC timeout in milliseconds");
+int timeout_ms = 500;           //"RPC timeout in milliseconds");
 int max_retry = 3;              //"Max retries(not including the first RPC)");
 bool dont_fail = false;         //"Print fatal when some call failed");
 bool enable_ssl = false;        //"Use SSL connection");
@@ -219,8 +218,6 @@ int main(int argc, char *argv[])
     while (!brpc::IsAskedToQuit())
     {
         sleep(1);
-        LOG(INFO) << "Sending EchoRequest at qps=" << g_latency_recorder.qps(1)
-                  << " latency=" << g_latency_recorder.latency(1);
     }
 
     LOG(INFO) << "EchoClient is going to quit";
