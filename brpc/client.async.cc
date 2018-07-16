@@ -34,6 +34,8 @@
 using namespace std;
 
 mutex mtx;
+atomic<long> trans_ok(0);
+atomic<long> trans(0);
 
 int64_t get_current_time()
 {
@@ -92,16 +94,17 @@ brpc_benchmark::BenchmarkMessage prepare_args()
     return msg;
 }
 
-static void on_rpc_done(brpc_benchmark::BenchmarkMessage *response,
-                        brpc::Controller *cntl, atomic<long>* trans_ok)
+void on_rpc_done(brpc_benchmark::BenchmarkMessage *response,
+                 brpc::Controller *cntl)
 {
     std::unique_ptr<brpc_benchmark::BenchmarkMessage> response_guard(response);
     std::unique_ptr<brpc::Controller> cntl_guard(cntl);
     if (!cntl->Failed() && response->field1().compare("OK") == 0 &&
         response->field2() == 100)
     {
-        (*trans_ok)++;
+        trans_ok++;
     }
+    trans++;
 }
 
 int main(int argc, char *argv[])
@@ -153,10 +156,7 @@ int main(int argc, char *argv[])
     // a stub Service wrapping it. stub can be shared by all threads as well.
     // brpc_benchmark::Hello_Stub stub(&channel);
 
-    // Send a request and wait for the response every 1 second.
-
-    atomic<int> trans(0);
-    atomic<long> trans_ok(0);
+    brpc_benchmark::Hello_Stub stub(&channel);
 
     vector<uint64_t> stats;
     cout << "begin" << endl;
@@ -164,54 +164,52 @@ int main(int argc, char *argv[])
 
     for (long i = 0; i < threads_num; i++)
     {
-        thread t([per_client_num, &channel, &trans, &trans_ok, &stats]() {
-            brpc_benchmark::Hello_Stub stub(&channel);
+        thread t([per_client_num, &stub, &stats]() {
             brpc_benchmark::BenchmarkMessage request;
-            brpc_benchmark::BenchmarkMessage response;
 
-            vector<uint64_t> stat;
+            // vector<uint64_t> stat;
 
             request.CopyFrom(prepare_args());
             for (long j = 0; j < per_client_num; j++)
             {
-                brpc::Controller cntl;
-                uint64_t start = get_current_time();
-                stub.Say(&cntl, &request, &response,
-                         brpc::NewCallback(on_rpc_done,
-                                           &response, &cntl, &trans_ok));
-                uint64_t cost = get_current_time() - start;
-                stat.push_back(cost);
+                brpc::Controller *cntl = new brpc::Controller();
+                brpc_benchmark::BenchmarkMessage *response = new brpc_benchmark::BenchmarkMessage();
+
+                // uint64_t start = get_current_time();
+                stub.Say(cntl, &request, response,
+                         brpc::NewCallback(on_rpc_done, response, cntl));
+                // uint64_t cost = get_current_time() - start;
+                // stat.push_back(cost);
             }
-            mtx.lock();
-            stats.insert(stats.end(), stat.begin(), stat.end());
-            mtx.unlock();
-            trans++;
+            // mtx.lock();
+            // stats.insert(stats.end(), stat.begin(), stat.end());
+            // mtx.unlock();
         });
         t.detach();
         // t.join();
     }
 
-    while (trans.load() < threads_num)
+    while (trans.load() < requests_num)
     {
         this_thread::sleep_for(chrono::milliseconds(10));
     }
     auto cost_time = (get_current_time() - start_time) / 1000.0;
     cout << "time cost(s): " << cost_time << endl;
-    while (stats.size() < (size_t)requests_num)
-    {
-        this_thread::sleep_for(chrono::milliseconds(10));
-    }
-    sort(stats.begin(), stats.end());
+    // while (stats.size() < (size_t)requests_num)
+    // {
+    //     this_thread::sleep_for(chrono::milliseconds(10));
+    // }
+    // sort(stats.begin(), stats.end());
 
     cout << "sent     requests    : " << requests_num << endl;
     cout << "received requests_OK : " << trans_ok << endl;
-    cout << "mean(ms):   "
-         << accumulate(stats.begin(), stats.end(), 0.0) / stats.size() << endl;
-    cout << "median(ms): " << stats[stats.size() / 2] << endl;
-    cout << "max(ms):    " << *(stats.end() - 1) << endl;
-    cout << "min(ms):    " << *(stats.begin()) << endl;
-    cout << "99P(ms):    " << stats[int(stats.size() * 0.999)] << endl;
-    if (cost_time > 0)
-        cout << "throughput (TPS): " << (double)requests_num / cost_time << endl;
+    // cout << "mean(ms):   "
+    //      << accumulate(stats.begin(), stats.end(), 0.0) / stats.size() << endl;
+    // cout << "median(ms): " << stats[stats.size() / 2] << endl;
+    // cout << "max(ms):    " << *(stats.end() - 1) << endl;
+    // cout << "min(ms):    " << *(stats.begin()) << endl;
+    // cout << "99P(ms):    " << stats[int(stats.size() * 0.999)] << endl;
+    // if (cost_time > 0)
+    cout << "throughput (TPS): " << (double)requests_num / cost_time << endl;
     return 0;
 }

@@ -38,7 +38,6 @@ class HelloImpl final : public brpc_benchmark::Hello
         response->CopyFrom(*request);
         response->set_field1("OK");
         response->set_field2(100);
-        done_guard.release();
     }
 
   private:
