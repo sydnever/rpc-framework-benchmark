@@ -14,6 +14,8 @@ build:
 	$(CC) $(CC_FLAG) -o client client.cc $(CPPS) $(INC) $(LIB) 
 	$(CC) $(CC_FLAG) -o server.async server.async.cc $(CPPS) $(INC) $(LIB)
 	$(CC) $(CC_FLAG) -o client.async client.async.cc $(CPPS) $(INC) $(LIB) 
+	$(CC) $(CC_FLAG) -o client.async2 client.async2.cc $(CPPS) $(INC) $(LIB) 
+	
 	
 
 build1:

@@ -4,6 +4,8 @@ server.1
 client.1
 server.async
 client.async
+client.async2
+
 gen-cpp
 .vscode
 .vscode/*
