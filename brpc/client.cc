@@ -94,7 +94,7 @@ brpc_benchmark::BenchmarkMessage prepare_args()
 int main(int argc, char *argv[])
 {
 
-    string server = "127.0.0.1:9092";              // "IP Address of server");
+    string port = ":9092";              // "IP Address of server");
     string load_balancer = "";                     // "The algorithm for load balancing");
     int32_t timeout_ms = 100;                      // "RPC timeout in milliseconds");
     int32_t max_retry = 3;                         // "Max retries(not including the first RPC)");
@@ -105,10 +105,12 @@ int main(int argc, char *argv[])
 
     long threads_num = 1;
     long requests_num = 1;
-    if (argc == 3)
+    string host;
+    if (argc == 4)
     {
         threads_num = atol(argv[1]);
         requests_num = atol(argv[2]);
+        host = argv[3];
     }
 
     long per_client_num = requests_num / threads_num;
@@ -124,7 +126,7 @@ int main(int argc, char *argv[])
     options.timeout_ms = timeout_ms /*milliseconds*/;
     options.max_retry = max_retry;
 
-    if (channel.Init(server.c_str(), load_balancer.c_str(), &options) != 0)
+    if (channel.Init((host+port).c_str(), load_balancer.c_str(), &options) != 0)
     {
         LOG(ERROR) << "Fail to initialize channel";
         return -1;
