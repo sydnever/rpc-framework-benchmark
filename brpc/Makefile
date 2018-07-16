@@ -1,9 +1,9 @@
 CC = g++
-CC_FLAG = -std=c++11 -Wall -O2
+CC_FLAG = -std=c++11 -Wall -O2 -DGFLAGS_NS=google
 
 INC = -I/usr/local/include
 # LIB = -lpthread -pthread -L/usr/local/lib -lgrpc++ -lprotobuf -lgrpc 
-LIB =  -pthread -lbrpc -lprotobuf -lbrpc -L/usr/local/lib
+LIB =  -pthread -lbrpc -lprotobuf -lbrpc -lgflags -L/usr/local/lib
 
 CPPS = benchmark.pb.cc 
 
@@ -16,7 +16,9 @@ build:
 	$(CC) $(CC_FLAG) -o client.async client.async.cc $(CPPS) $(INC) $(LIB) 
 	$(CC) $(CC_FLAG) -o client.async2 client.async2.cc $(CPPS) $(INC) $(LIB) 
 	
-	
+build3:
+	$(CC) $(CC_FLAG) -o client.async3 client.async3.cc $(CPPS) $(INC) $(LIB)
+
 
 build1:
 	$(CC) $(CC_FLAG) -o server.1 server.1.cc $(CPPS) $(INC) $(LIB)
